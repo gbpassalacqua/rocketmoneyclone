@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { supabase } from "@/lib/supabase"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 
 export default function Signup() {
   const navigate = useNavigate()
@@ -31,6 +31,11 @@ export default function Signup() {
       return
     }
 
+    if (!isSupabaseConfigured) {
+      setError("Servico indisponivel. Tente novamente mais tarde.")
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -52,8 +57,9 @@ export default function Signup() {
       }
 
       setEmailSent(true)
-    } catch {
-      setError("Erro inesperado. Tente novamente.")
+    } catch (err) {
+      console.error("Signup error:", err)
+      setError(err instanceof Error ? err.message : "Erro inesperado. Tente novamente.")
     } finally {
       setLoading(false)
     }
