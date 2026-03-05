@@ -27,7 +27,7 @@ type BudgetPreference = "full" | "watchlist" | null
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { user, tenantId } = useAuthStore()
+  const { user, tenantId, setTenant } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
 
@@ -87,10 +87,35 @@ export default function Onboarding() {
   }
 
   const handleFinish = async () => {
-    if (!user || !tenantId) return
+    if (!user) return
     setLoading(true)
 
     try {
+      // If tenantId is not loaded yet, try to fetch it
+      let currentTenantId = tenantId
+      if (!currentTenantId) {
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("tenant_id, role")
+          .eq("id", user.id)
+          .single()
+
+        if (profile) {
+          currentTenantId = profile.tenant_id
+          const { data: tenant } = await supabase
+            .from("tenants")
+            .select("plan")
+            .eq("id", profile.tenant_id)
+            .single()
+
+          setTenant(
+            profile.tenant_id,
+            profile.role as "owner" | "member" | "viewer",
+            (tenant?.plan ?? "free") as "free" | "premium"
+          )
+        }
+      }
+
       // Save LGPD consent timestamp
       await supabase
         .from("user_profiles")
@@ -101,9 +126,9 @@ export default function Onboarding() {
         .eq("id", user.id)
 
       // Create initial goal if provided
-      if (goalName && goalAmount) {
+      if (goalName && goalAmount && currentTenantId) {
         await supabase.from("financial_goals").insert({
-          tenant_id: tenantId,
+          tenant_id: currentTenantId,
           user_id: user.id,
           name: goalName,
           target_amount: parseFloat(goalAmount),
@@ -111,10 +136,12 @@ export default function Onboarding() {
       }
 
       // Audit log
-      await logAudit(supabase, tenantId, user.id, "onboarding_completed", undefined, undefined, {
-        budget_preference: budgetPreference,
-        bank_connected: bankConnected,
-      })
+      if (currentTenantId) {
+        await logAudit(supabase, currentTenantId, user.id, "onboarding_completed", undefined, undefined, {
+          budget_preference: budgetPreference,
+          bank_connected: bankConnected,
+        })
+      }
 
       navigate("/dashboard")
     } catch {
