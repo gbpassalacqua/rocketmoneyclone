@@ -5,11 +5,9 @@ import type { Transaction, SpendingBenchmark } from "@/types"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Progress } from "@/components/ui/progress"
 import {
   Sparkles,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Lightbulb,
   RefreshCw,
