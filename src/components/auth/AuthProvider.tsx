@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { supabase } from "@/lib/supabase"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/authStore"
 import { logAudit } from "@/services/audit"
 
@@ -59,6 +59,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state and listen for changes
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setUser(null)
+      if (!PUBLIC_ROUTES.includes(location.pathname)) {
+        navigate("/login")
+      }
+      return
+    }
+
     const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
 
