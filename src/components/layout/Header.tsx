@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/stores/authStore"
+import { supabase } from "@/lib/supabase"
+import { logAudit } from "@/services/audit"
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -19,7 +21,16 @@ interface HeaderProps {
 export function Header({ onMenuToggle }: HeaderProps) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const tenantId = useAuthStore((s) => s.tenantId)
   const plan = useAuthStore((s) => s.plan)
+
+  const handleLogout = async () => {
+    if (tenantId && user) {
+      await logAudit(supabase, tenantId, user.id, "logout")
+    }
+    await supabase.auth.signOut()
+    navigate("/login")
+  }
 
   const initials = user?.email
     ? user.email.substring(0, 2).toUpperCase()
@@ -93,7 +104,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => navigate("/login")}
+              onClick={handleLogout}
               className="text-destructive focus:text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
