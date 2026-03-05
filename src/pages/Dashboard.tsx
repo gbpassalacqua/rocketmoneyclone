@@ -93,7 +93,26 @@ export default function Dashboard() {
   // -----------------------------------------------------------------------
 
   const fetchData = useCallback(async () => {
-    if (!user || !tenantId) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
+
+    // If tenantId not loaded yet, try to fetch it
+    let currentTenantId = tenantId
+    if (!currentTenantId) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single()
+
+      if (!profile?.tenant_id) {
+        setLoading(false)
+        return
+      }
+      currentTenantId = profile.tenant_id
+    }
 
     setLoading(true)
     setError(null)
@@ -108,22 +127,22 @@ export default function Dashboard() {
           supabase
             .from("accounts")
             .select("*")
-            .eq("tenant_id", tenantId),
+            .eq("tenant_id", currentTenantId),
           supabase
             .from("transactions")
             .select("*")
-            .eq("tenant_id", tenantId)
+            .eq("tenant_id", currentTenantId)
             .gte("date", sixMonthsAgoIso)
             .order("date", { ascending: false }),
           supabase
             .from("subscriptions")
             .select("*")
-            .eq("tenant_id", tenantId)
+            .eq("tenant_id", currentTenantId)
             .eq("status", "active"),
           supabase
-            .from("smart_savings_configs")
+            .from("smart_savings")
             .select("*")
-            .eq("tenant_id", tenantId)
+            .eq("tenant_id", currentTenantId)
             .limit(1)
             .maybeSingle(),
         ])
